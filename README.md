@@ -23,13 +23,13 @@ Before setting up the project, ensure you have the following installed on your s
 Clone this repository to your local machine using Git:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/voiceflow-gallagan/vf-analytics-proxy.git
 ```
 
 Navigate into the project directory:
 
 ```bash
-cd <project-directory>
+cd vf-analytics-proxy
 ```
 
 ### 2. Configure Environment Variables
