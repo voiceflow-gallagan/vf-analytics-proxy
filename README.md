@@ -4,6 +4,8 @@
 
 This repository contains a Node.js application that acts as a proxy between a Chat Widget and the Voiceflow Dialog Manager (DM) API. The primary purpose of this proxy is to intercept requests sent from the Chat Widget to the Voiceflow DM API's `/interact` endpoint, allowing for the collection, parsing, and analysis of response traces for analytics purposes.
 
+![Preview](/img/log.png)
+
 ## Features
 
 - **Request Interception**: Captures all requests sent by the Chat Widget to the Voiceflow DM API.
