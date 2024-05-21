@@ -8,10 +8,10 @@ const app = express()
 const PORT = process.env.PORT || 3000
 const VOICEFLOW_RUNTIME_URL =
   process.env.VOICEFLOW_RUNTIME_URL || 'https://general-runtime.voiceflow.com'
+const MODE = process.env.MODE.toLowerCase() || 'widget'
 
 app.use(cors())
 app.use(bodyParser.json())
-
 app.use((req, res, next) => {
   if (req.path.includes('/interact')) {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
@@ -29,7 +29,15 @@ const forwardRequest = async (req, res) => {
   }
 
   if (req.path.includes('/interact')) {
+    let sessionid = req.headers.sessionid || null
+    let versionid = req.headers.versionid || 'development'
+
     delete headers['content-length']
+    if (MODE == 'api') {
+      let userID = req.headers.userid || 'user'
+      headers.authorization = process.env.VOICEFLOW_API_KEY
+      targetUrl = `${VOICEFLOW_RUNTIME_URL}/state/user/${userID}/interact`
+    }
     req.body.config = { excludeTypes: ['speak', 'flow', 'block'], tts: false }
   }
 
@@ -44,13 +52,24 @@ const forwardRequest = async (req, res) => {
     // Log the response from the runtime endpoint
     if (req.path.includes('/interact')) {
       /* Pass those info to your Business Analytics tool of choice */
-      console.log(extractTraceInfo(response.data.trace, req.body, req.headers))
+      if (MODE == 'api') {
+        console.log(extractTraceInfo(response.data, req.body, req.headers))
+        response.data = response.data.filter((item) => item.type !== 'debug')
+      } else {
+        console.log(
+          extractTraceInfo(response.data.trace, req.body, req.headers)
+        )
+        response.data.trace = response.data.trace.filter(
+          (item) => item.type !== 'debug'
+        )
+      }
     }
-
     // Forward the response headers and status code
     res.set(response.headers)
     res.status(response.status).send(response.data)
   } catch (error) {
+    console.log(error)
+
     if (error.response) {
       // Log the error response from the runtime endpoint
       if (req.path.includes('/interact')) {
@@ -74,36 +93,21 @@ app.listen(PORT, () => {
   console.log(`Voiceflow Analytics Proxy Server is listening on port ${PORT}`)
 })
 
-function extractTraceInfo(trace, requestBody, requestHeaders) {
-  // Parse request headers
-  var ua = new parser(requestHeaders['user-agent'])
-  let hDevice = ua.getDevice() || null
-  if (hDevice) {
-    hDevice = `${hDevice.vendor} ${hDevice.model}`
-  }
-  let hBrowser = ua.getBrowser() || null
-  if (hBrowser) {
-    hBrowser = `${hBrowser.name} ${hBrowser.version}`
-  }
-  let hOS = ua.getOS() || null
-  if (hOS) {
-    hOS = `${hOS.name} ${hOS.version}`
-  }
+function extractTraceInfo(trace, requestBody, requestHeaders, mode) {
   let hSession = requestHeaders.sessionid || null
   let hVersion = requestHeaders.versionid || null
   let hOrigin = requestHeaders.origin || null
   let hReferer = requestHeaders.referer || null
   let hIP = requestHeaders['x-forwarded-for'] || '127.0.0.1'
 
-  // Initialize the output object with null values
   const output = {
     headers: {
-      os: hOS,
-      device: hDevice,
-      browser: hBrowser,
+      os: null,
+      device: null,
+      browser: null,
       origin: hOrigin,
       referer: hReferer,
-      // ip: hIP,
+      ip: hIP,
       session: hSession,
       version: hVersion,
     },
@@ -124,6 +128,28 @@ function extractTraceInfo(trace, requestBody, requestHeaders) {
     },
     textResponses: [],
     endOfConvo: false,
+  }
+
+  if (MODE != 'api') {
+    // Parse request headers
+    var ua = new parser(requestHeaders['user-agent'])
+    let hDevice = ua.getDevice() || null
+    if (hDevice) {
+      hDevice = `${hDevice.vendor} ${hDevice.model}`
+    }
+    output.headers.device = hDevice
+
+    let hBrowser = ua.getBrowser() || null
+    if (hBrowser) {
+      hBrowser = `${hBrowser.name} ${hBrowser.version}`
+    }
+    output.headers.browser = hBrowser
+
+    let hOS = ua.getOS() || null
+    if (hOS && hOS.name) {
+      hOS = `${hOS.name} ${hOS.version}`
+    }
+    output.headers.os = hOS
   }
 
   // Extract action type and value from the request body

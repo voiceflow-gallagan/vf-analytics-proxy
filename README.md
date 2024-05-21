@@ -36,12 +36,21 @@ cd vf-analytics-proxy
 
 ### 2. Configure Environment Variables
 
-Rename the `.env.template` file to `.env`. Open the `.env` file and update the values if necessary.
+Rename the `.env.template` file to `.env`. Open the `.env` file and update the values as necessary.
 
-The default configuration is as follows:
+The default configuration to use the proxy with the CHat Widget is as follows:
 
 ```
 VOICEFLOW_RUNTIME_URL = 'https://general-runtime.voiceflow.com' # Default for public runtime
+PORT = 3000 # Port to run the server on
+```
+
+To use the proxy with our DM API, update the values as follows:
+
+```
+VOICEFLOW_RUNTIME_URL = 'https://general-runtime.voiceflow.com' # Default for public runtime
+VOICEFLOW_API_KEY = 'your-vf-api-key'
+MODE = 'API'
 PORT = 3000 # Port to run the server on
 ```
 
@@ -71,7 +80,7 @@ For example, if the server is running on port 3000:
 ngrok http 3000
 ```
 
-### 6. Update the Chat Widget Snippet
+## Proxy with the Chat Widget Snippet
 
 Update the `url` value in your Chat Widget snippet code to use the URL of the instance where the proxy is running or the ngrok forwarding URL.
 
@@ -91,5 +100,23 @@ Here is an example snippet:
 })(document, 'script');
 ```
 
-Replace `your-vf-roject-idReplace` with your project id and `https://your-proxy-url` with the actual URL of your proxy server instance.
+Replace `your-vf-project-id` with your project id and `https://your-proxy-url` with the actual URL of your proxy server instance.
 
+## Proxy with the DM API
+
+Update the `url` value in your Chat Widget snippet code to use the URL of the instance where the proxy is running or the ngrok forwarding URL.
+
+Here is an example of a request to the proxy when using the DM API:
+
+```curl --request POST \
+  --url https://154d-90-26-55-172.ngrok-free.app/state/user/test/interact \
+  --header 'Authorization: VF.DM.XXX' \
+  --header 'Content-Type: application/json' \
+  --header 'userid: test' \
+  --header 'versionid: development' \
+  --data '{
+	"action": {"type": "text", "payload": "how tall is the eiffel tower?"}
+}'
+```
+
+Replace the `url` with your endpoint URL, `VF.DM.XXX` with your Voiceflow API key, set `versionid` to your project version ('development', 'production') and pass the `userid` you want.
